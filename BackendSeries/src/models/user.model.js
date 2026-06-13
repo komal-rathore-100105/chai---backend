@@ -11,7 +11,7 @@ const userSchema = new Schema(
             lowercase: true,
             trim: true,
             index: true
-        
+
         },
         email: {
             type: String,
@@ -19,7 +19,7 @@ const userSchema = new Schema(
             unique: true,
             lowercase: true,
             trim: true,
-            
+
         },
         fullname: {
             type: String,
@@ -29,14 +29,15 @@ const userSchema = new Schema(
         },
         avatar: {
             type: String, // cloudinary url
-            required: true
+            default: ""
         },
         coverImage: {
-            typr: String, // cloudinary url
+            type: String, // cloudinary url
+            default: ""
         },
         watchHistory: [
             {
-                typpe: Schema.Types.ObjectId,
+                type: Schema.Types.ObjectId,
                 ref: "Video"
             }
         ],
@@ -52,18 +53,31 @@ const userSchema = new Schema(
         timestamps: true
     }
 )
-userSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) return next();
+// userSchema.pre("save", async function (next) {
+// if (!this.isModified("password")) return next();
+//
+// this.password = await bcrypt.hash(this.password, 10)
+// next()
+// })
 
-    this.password = bcrypt.hash(this.password, 10)
-    next()
+// ✅ Defensive next() calls
+userSchema.pre("save", async function (next) {
+    if (!this.isModified("password")) {
+        if (typeof next === "function") return next();
+        return;
+    }
+
+    this.password = await bcrypt.hash(this.password, 10)
+
+    if (typeof next === "function") next();
 })
+
 userSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcrypt.compare(password,this.password)
+    return await bcrypt.compare(password, this.password)
 }
 
 userSchema.methods.generateAccessToken = function () {
-  return jwt.sign(
+    return jwt.sign(
         {
             _id: this._id,
             email: this.email,
@@ -89,3 +103,4 @@ userSchema.methods.generateRefreshToken = function () {
     )
 }
 const User = mongoose.model("User", userSchema)
+export { User }
